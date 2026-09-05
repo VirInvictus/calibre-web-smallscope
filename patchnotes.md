@@ -3,8 +3,10 @@
 
 - **read_book route swapped.** The ORM `get_filtered_book` call is
   replaced by `quarry_grid.build_detail(book_id)`, same as show_book.
-  All reader branches (epub/pdf/txt/djvu/audio) work from the
-  precomputed surface.
+  The epub/pdf/txt/djvu reader branches work from the precomputed
+  surface. *(Corrected 2026-09-05: the audio branch still resolves the
+  book through `get_filtered_book` and passes the ORM object to
+  `listenmp3.html`; only the top-of-route call moved.)*
 - **Rebrand light-touch.** Upstream copyright headers stripped from
   Carrel-owned files that were rewritten from scratch (clean_html.py).
   Stock calibre-web files (web.py, db.py, helper.py, config_sql.py)
@@ -93,10 +95,12 @@
   OPDS read/unread feeds stay on the ORM for now (feed.xml's rich entry
   surface: they swap with opds.py itself), as does the ub.ReadBook
   fallback for column-less instances.
-- **/basic_book detail and the about-page counts.** `/basic_book` and
-  `/basic` search were already cquarry-backed; the about page's four
+- **/basic_book detail and the about-page counts.** `/basic` search was
+  already cquarry-backed; the about page's four
   counts now come from `count_books()` + `get_entities()` instead of ORM
-  session queries.
+  session queries. *(Corrected 2026-09-05: `/basic_book` was NOT already
+  cquarry-backed and still is not; it remains the last ORM detail
+  surface.)*
 - **Dead code out.** The commented-out `get_comic_book` block is deleted,
   and `edit_book_read_status` loses its unreachable bool-column write
   branch: any configured read column is now simply read-only here.

@@ -20,10 +20,12 @@ Read those before changing anything here.
   new code in new modules.
 - Upstream code style applies in upstream files (GPL-3.0 third-party code;
   match what is there, not the personal conventions).
-- ⚠ A formatter hook reformats Python touched via Claude's Edit/Write tools,
-  which churns whole upstream files and poisons rebases. **Patch upstream `.py`
-  files via shell (python heredoc) instead.** Templates, CSS, and our own new
-  modules are fine to edit normally.
+- A formatter hook once reformatted Python touched via agent Edit/Write
+  tools, churning whole upstream files and poisoning rebases; the hook's
+  registration was removed on 2026-09-05, but if one is ever re-registered
+  the hazard returns. **Patch upstream `.py` files via shell (python
+  heredoc) regardless** — the rebase-cleanliness motive stands on its own.
+  Templates, CSS, and our own new modules are fine to edit normally.
 
 ## The modules that are ours
 
@@ -45,7 +47,9 @@ Everything Carrel adds lives in its own file, so the upstream diff stays small.
 | `cps/stats.py` | headless metrics plus the `/statistics` route |
 | `cps/static/js/` | `palette.js`, `cattree.js`, `keynav.js`, vanilla and self-contained |
 
-All of them cache on `metadata.db`'s mtime, the idiom `wings.py` established.
+All of them cache on `metadata.db`'s mtime **and the library's UUID**, the
+idiom `wings.py` established and the cquarry 1.3 adoption generalized
+(mtime-only is the documented degraded mode).
 
 ## Things that will bite you
 

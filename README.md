@@ -114,7 +114,8 @@ or `just serve` from the Carrel repo, which is the same command.
 ~/.local/share/carrel/venv/bin/python -m unittest discover -s tests
 ```
 
-54 tests in about a second, against a fixture library built from a real Calibre
+108 collected tests in about a second (60 unique test methods; the quarry
+extensions inherit the base fixtures), against a fixture library built from a real Calibre
 schema dump. They cover the enum read column and all four status badges, write
 refusal with checksum proof, the read-only attachment, the disabled routes,
 wing membership, category roll-up, the search grammar, the statistics metrics,
@@ -133,6 +134,10 @@ New code lives in new modules, so the diff against upstream stays legible.
 | `cps/single_user.py` | authenticates the owner; seals the credential routes |
 | `cps/smallscope.py` | disables blueprints and the cut browse surfaces |
 | `cps/carrel_search.py` | resolves a query through cquarry's engine |
+| `cps/quarry_grid.py` | the cquarry data layer: build_detail, entity id sets, search sorts, pagination |
+| `cps/reading_shelf.py` | the currently-reading shelf |
+| `cps/library_cache.py` | mtime + UUID keyed caches over cquarry reads |
+| `cps/page_count.py` | cached page counts for progress fractions |
 | `cps/wings.py` | virtual libraries as browse sections |
 | `cps/saved_searches.py` | Calibre saved searches as browse sections |
 | `cps/reader_state.py` | per-book progress and highlights on the detail page |

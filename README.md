@@ -89,7 +89,9 @@ focuses search, Ctrl-K opens the palette.
 **Removed:** uploads, shelves, metadata editing, Kobo sync, Goodreads, email,
 registration, public sharing, the task queue, advanced search, Discover, Hot
 Books and Top Rated. Routes are disabled rather than deleted, so the diff
-against upstream stays small and rebase-friendly.
+against upstream stays small and rebase-friendly; the one deletion is the
+dead ORM behind the already-sealed advanced search, taken deliberately when
+its seal made the code unreachable.
 
 ## Running it
 
@@ -115,8 +117,7 @@ or `just serve` from the Carrel repo, which is the same command.
 ~/.local/share/carrel/venv/bin/python -m unittest discover -s tests
 ```
 
-108 collected tests in about a second (60 unique test methods; the quarry
-extensions inherit the base fixtures), against a fixture library built from a real Calibre
+71 tests in about a second, against a fixture library built from a real Calibre
 schema dump. They cover the enum read column and all four status badges, write
 refusal with checksum proof, the read-only attachment, the disabled routes,
 wing membership, category roll-up, the search grammar, the statistics metrics,

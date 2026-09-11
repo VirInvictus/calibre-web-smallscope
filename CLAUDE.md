@@ -17,7 +17,9 @@ Read those before changing anything here.
 - `cps/static/css/kanagawa-dragon.css` is VENDORED from `Carrel/theme/` via
   `just sync-theme`; edit it there, not here.
 - Keep the diff rebase-friendly: disable routes rather than delete files, put
-  new code in new modules.
+  new code in new modules. (The one deletion is the dead ORM behind the
+  sealed advsearch, 0.6.36: deliberate, patchnoted, and amended into
+  Carrel's spec 6.2 on 2026-09-11.)
 - Upstream code style applies in upstream files (GPL-3.0 third-party code;
   match what is there, not the personal conventions).
 - A formatter hook once reformatted Python touched via agent Edit/Write

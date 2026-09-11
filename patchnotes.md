@@ -1,4 +1,65 @@
 # Patchnotes (Carrel-calibre-web)
+## Phase 13 sealing release: eight routes sealed, send/convert dead, the invariants pinned (2026-09-11, 0.6.40)
+
+The fork half of the contract repo's Phase 13 hardening backlog (the
+sweep that prompted it is recorded there). The headline: eight live
+routes the credential seal never met are sealed; the send/convert chain
+can no longer write into the library folder regardless of configuration;
+the read-only attach and the harness's blueprint parity are pinned by
+committed tests.
+
+- **Eight admin-machinery routes sealed.** /get_updater_status (whose
+  start=True resumes the updater thread that would replace the checkout
+  with an upstream release, destroying the smallscope patches),
+  /get_update_status, the user AJAX trio (/ajax/listusers,
+  /ajax/editlistusers/<param>, /ajax/deleteuser: deleting the owner
+  bricks the room), /ajax/pathchooser (an arbitrary directory listing),
+  /shutdown, /reconnect. One frozenset extension and one prefix tuple in
+  single_user.py's existing rebase-friendly pattern; the probed kill
+  chain was two unauthenticated requests with self-mintable CSRF.
+- **The send/convert chain is dead structurally.** send_mail and
+  convert_book_format refuse before touching the ORM, so no
+  configuration state can queue ebook-convert, which writes a converted
+  file INTO the library folder (the read-only commit only failed closed
+  by operation order). TaskBackupMetadata refuses outright: it wrote
+  metadata.opf into book folders on the same order-only guarantee.
+- **One broken wing or saved search no longer poisons its section.**
+  Resolution is per-name now: a vl: target renamed in Calibre, or a
+  saved-search name containing a quote, is skipped and logged while its
+  siblings survive. Before, the failed rebuild never updated the cache
+  mtime, so every page render re-paid it and the whole section vanished
+  until the entry was fixed in Calibre desktop.
+- **OPDS hardening.** A new _int_param() replaces all 22 bare int()
+  offset reads (garbage degrades to the first page instead of escaping
+  as a 500); an unparseable search query renders an empty feed instead
+  of 500ing; the search feed pages at the configured books-per-page with
+  feed.xml's existing rel="next", instead of rendering every match in
+  one unbounded response with full comments.
+- **Honest failure classes.** resolve() converted every exception,
+  including a vanished metadata.db, into "could not parse that search".
+  Parse errors stay SearchError; an unreadable library now raises
+  LibraryUnavailable, answered 503 by /search and /basic (the
+  /statistics convention) and by the empty feed in OPDS. Wing and
+  saved-search URLs are case-insensitive like every surface beneath
+  them.
+- **The invariants are committed tests now.** PRAGMA database_list pins
+  the mode=ro attach to the single pooled connection beside the existing
+  refused-UPDATE probe; a parity test parses main.py's blueprint
+  registrations with ast and compares against the harness in both
+  directions (the drift that once silently voided the Phase 8 route
+  cuts), with kobo/oauth/gdrive pinned off; the new seals have a
+  method-exact regression test.
+- **Papercuts.** The vacuous assertGreaterEqual in the custom-column
+  test is assertGreater; TestQuarryExtensions no longer re-runs the 48
+  parent tests, so collected equals executed; clean_html.py is reverted
+  to upstream byte-for-byte (the reformat had stripped its GPL-3.0
+  header) and about.py keeps its two functional lines without the
+  quote-style reflow; CI pins the cquarry install to v1.17.0 instead of
+  @main.
+- **Requires cquarry >= 1.11.1.**
+- **Version 0.6.40.** Suite 71 green (was 108 executions for 60 unique
+  tests).
+
 ## Phase 7 close: read_book through cquarry; rebrand light-touch (2026-09-04, 0.6.39)
 
 - **read_book route swapped.** The ORM `get_filtered_book` call is

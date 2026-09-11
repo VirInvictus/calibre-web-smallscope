@@ -29,9 +29,17 @@ def _resolve_saved():
 
     with CalibreDB(library_path()) as quarry:
         names = quarry.get_saved_searches()
-        resolved = {
-            name: frozenset(quarry.search('search:"%s"' % name)) for name in names
-        }
+        resolved = {}
+        for name in names:
+            # Per-name fault isolation, same shape as wings.py: one entry
+            # the grammar cannot evaluate (a name containing a quote breaks
+            # the interpolation, a renamed target raises) is skipped and
+            # logged instead of failing the whole rebuild on every request
+            # and vanishing the entire Saved Searches section.
+            try:
+                resolved[name] = frozenset(quarry.search('search:"%s"' % name))
+            except Exception as ex:
+                log.error("Saved search %r failed to resolve, skipping: %s", name, ex)
     log.info("Saved-search cache rebuilt: %d searches", len(resolved))
     return resolved
 

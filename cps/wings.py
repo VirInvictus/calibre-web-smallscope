@@ -42,12 +42,19 @@ def _resolve_wings():
                         return (1, 0.0, name.lower())
             return (1, 0.0, name.lower())
 
-        resolved = {
-            name: frozenset(quarry.resolve_vl(name))
-            for name in sorted(
-                (n for n in names if n.lower() not in hidden), key=sort_key
-            )
-        }
+        resolved = {}
+        for name in sorted((n for n in names if n.lower() not in hidden), key=sort_key):
+            # Per-name fault isolation: a wing whose expression cannot be
+            # evaluated (a vl: target renamed or deleted in Calibre, a
+            # corrupted preference) is skipped and logged. Before Phase 13
+            # one broken wing raised out of the comprehension, which failed
+            # the whole rebuild, which never updated the cache mtime, so
+            # every page render re-paid the failure and the entire Wings
+            # section vanished until the entry was fixed in Calibre.
+            try:
+                resolved[name] = frozenset(quarry.resolve_vl(name))
+            except Exception as ex:
+                log.error("Wing %r failed to resolve, skipping: %s", name, ex)
     log.info("Wings cache rebuilt: %d wings", len(resolved))
     return resolved
 

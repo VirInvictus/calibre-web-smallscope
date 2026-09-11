@@ -1077,6 +1077,47 @@ class TestQuarryExtensions(SmallscopeTestCase):
         self.assertLess(sci_fi, hugo)
         self.assertLess(hugo, not_hugo)
 
+    # --- per-name fault isolation (Phase 13) ---------------------------------
+
+    def test_a_broken_wing_is_skipped_not_fatal(self):
+        # A wing whose expression raises (here: a vl: target that no longer
+        # exists, which cquarry answers with ValueError) is skipped and
+        # logged. One broken entry must not fail the whole rebuild and
+        # vanish the entire Wings section on every request.
+        self._set_pref(
+            "virtual_libraries",
+            {
+                "SciFi": 'tags:"Fic.SciFi"',
+                "Hugo": "tags:Award.Hugo",
+                "NotHugo": 'not vl:"Hugo"',
+                "Empty": 'tags:"Nothing.Here"',
+                "Broken": 'vl:"DoesNotExist"',
+            },
+        )
+        page = self.client.get("/").get_data(as_text=True)
+        self.assertIn("wings/SciFi", page)
+        self.assertIn("wings/NotHugo", page)
+        self.assertNotIn("wings/Broken", page)
+
+    def test_a_broken_saved_search_is_skipped_not_fatal(self):
+        # A saved-search name containing a quote breaks the search:"name"
+        # interpolation; the broken entry is skipped and its siblings
+        # survive, instead of the whole section disappearing.
+        self._set_pref(
+            "saved_searches",
+            {
+                "Hugo Winners": "tags:Award.Hugo",
+                'Broken "Quote': "tags:Award.Hugo",
+                "Space": 'tags:"Fic.SciFi.Space"',
+            },
+        )
+        page = self.client.get("/").get_data(as_text=True)
+        self.assertIn("saved/Hugo%20Winners", page)
+        self.assertIn("saved/Space", page)
+        # the broken entry itself is absent ("Broken" alone would collide
+        # with the fixture's The Broken Earth series)
+        self.assertNotIn("saved/Broken", page)
+
     # --- reader state on the detail page -------------------------------------
 
     def test_reader_state_progress_and_highlights_render(self):

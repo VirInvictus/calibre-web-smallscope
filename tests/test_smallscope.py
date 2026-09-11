@@ -215,6 +215,24 @@ class SmallscopeTestCase(unittest.TestCase):
             calibre_db.session.rollback()
             self.assertIn("readonly", str(ctx.exception).lower())
 
+    def test_pooled_connection_carries_the_readonly_attach(self):
+        # PRAGMA database_list must show the library attached as `calibre` on
+        # the single pooled connection (and app.db as `app_settings`). Beside
+        # the refused-UPDATE probe above, this pins spec 7 to the connection
+        # itself: a refactor of the StaticPool attach that connected without
+        # the mode=ro URI would fail here before any write could succeed.
+        from sqlalchemy import text
+
+        with app.app_context():
+            rows = calibre_db.session.execute(text("PRAGMA database_list")).fetchall()
+        attached = {name: file for (_seq, name, file) in rows}
+        self.assertIn("calibre", attached)
+        self.assertTrue(
+            attached["calibre"].endswith("metadata.db"),
+            "library not attached: %r" % attached,
+        )
+        self.assertIn("app_settings", attached)
+
     # --- trimmed surface --------------------------------------------------
 
     def test_trimmed_routes_404(self):
@@ -246,6 +264,68 @@ class SmallscopeTestCase(unittest.TestCase):
         task = TaskBackupMetadata()
         task.run(None)
         self.assertIn("disabled", task.error or "")
+
+    # --- harness-vs-main parity (Phase 13) ----------------------------------
+
+    def test_harness_registers_every_blueprint_main_does(self):
+        """The harness hand-mirrors main()'s blueprint registration and has
+        drifted twice, once silently voiding the Phase 8 route cuts. Parse
+        main.py's register_blueprint calls with ast and compare in both
+        directions: anything main registers unconditionally must be
+        registered here, and anything registered here must be in main.
+
+        kobo/kobo_auth/oauth are conditional in main and pinned off below.
+        gdrive registers unconditionally in production and is the one
+        deliberate omission here; its five routes are never test-exercised.
+        """
+        import ast
+        import inspect
+        from flask import Blueprint
+
+        from cps import main as main_mod
+
+        unconditional, conditional = set(), set()
+
+        def collect(stmts, inside_if):
+            for stmt in stmts:
+                if isinstance(stmt, ast.If):
+                    collect(stmt.body, True)
+                elif isinstance(stmt, ast.FunctionDef):
+                    # getsource(main) wraps the body in a FunctionDef node.
+                    collect(stmt.body, inside_if)
+                elif (
+                    isinstance(stmt, ast.Expr)
+                    and isinstance(stmt.value, ast.Call)
+                    and isinstance(stmt.value.func, ast.Attribute)
+                    and stmt.value.func.attr == "register_blueprint"
+                    and isinstance(stmt.value.func.value, ast.Name)
+                    and stmt.value.func.value.id == "app"
+                    and isinstance(stmt.value.args[0], ast.Name)
+                ):
+                    target = conditional if inside_if else unconditional
+                    target.add(stmt.value.args[0].id)
+
+        collect(ast.parse(inspect.getsource(main_mod.main)).body, False)
+
+        mod = sys.modules[__name__]
+        expected, missing = set(), []
+        for var in unconditional - {"gdrive"}:
+            bp = getattr(mod, var, None)
+            if isinstance(bp, Blueprint):
+                expected.add(bp.name)
+            else:
+                missing.append(var)
+        self.assertEqual(
+            missing, [], "main registers blueprints the harness never imports"
+        )
+        self.assertEqual(set(app.blueprints), expected)
+
+    def test_kobo_oauth_gdrive_stay_off(self):
+        # Spec 6.1/14: kobo sync, oauth and gdrive are off in production and
+        # the harness never registers them. Pinned so a rebase that flips one
+        # on cannot silently add its routes outside every seal.
+        for name in ("kobo", "kobo_auth", "oauth", "gdrive"):
+            self.assertNotIn(name, app.blueprints)
 
     # --- single user (spec 11) ---------------------------------------------
 

@@ -97,52 +97,11 @@ except (ImportError, RuntimeError) as e:
 def convert_book_format(
     book_id, calibre_path, old_book_format, new_book_format, user_id, ereader_mail=None
 ):
-    book = calibre_db.get_book(book_id)
-    data = calibre_db.get_book_format(book.id, old_book_format)
-    if not data:
-        error_message = _(
-            "%(format)s format not found for book id: %(book)d",
-            format=old_book_format,
-            book=book_id,
-        )
-        log.error("convert_book_format: %s", error_message)
-        return error_message
-    file_path = os.path.join(calibre_path, book.path, data.name)
-    if config.config_use_google_drive:
-        if not gd.getFileFromEbooksFolder(
-            book.path, data.name + "." + old_book_format.lower()
-        ):
-            error_message = _(
-                "%(format)s not found on Google Drive: %(fn)s",
-                format=old_book_format,
-                fn=data.name + "." + old_book_format.lower(),
-            )
-            return error_message
-    else:
-        if not os.path.exists(file_path + "." + old_book_format.lower()):
-            error_message = _(
-                "%(format)s not found: %(fn)s",
-                format=old_book_format,
-                fn=data.name + "." + old_book_format.lower(),
-            )
-            return error_message
-    # read settings and append converter task to queue
-    if ereader_mail:
-        settings = config.get_mail_settings()
-        settings["subject"] = _("Send to eReader")  # pretranslate Subject for Email
-        settings["body"] = _("This Email has been sent via Calibre-Web.")
-    else:
-        settings = dict()
-    link = '<a href="{}">{}</a>'.format(
-        url_for("web.show_book", book_id=book.id), escape(book.title)
-    )  # prevent xss
-    txt = "{} -> {}: {}".format(old_book_format.upper(), new_book_format.upper(), link)
-    settings["old_book_format"] = old_book_format
-    settings["new_book_format"] = new_book_format
-    WorkerThread.add(
-        user_id, TaskConvert(file_path, book.id, txt, settings, ereader_mail, user_id)
-    )
-    return None
+    # smallscope: conversion writes the converted file into the book folder,
+    # inside the library, which the read-only contract forbids (Carrel spec
+    # 7). Stubbed so no caller or config state can reach ebook-convert;
+    # send_mail and the trimmed editbooks/kobo routes were the only callers.
+    return _("Format conversion is disabled on this instance")
 
 
 # Texts are not lazy translated as they are supposed to get send out as is
@@ -288,44 +247,11 @@ def check_read_formats(entry):
 # 2: If mobi file is existing, it's converted and send to eReader email,
 # 3: If Pdf file is existing, it's directly send to eReader email
 def send_mail(book_id, book_format, convert, ereader_mail, calibrepath, user_id):
-    """Send email with attachments"""
-    book = calibre_db.get_book(book_id)
-
-    if convert == 1:
-        # returns None if success, otherwise errormessage
-        return convert_book_format(
-            book_id, calibrepath, "mobi", book_format.lower(), user_id, ereader_mail
-        )
-    if convert == 2:
-        # returns None if success, otherwise errormessage
-        return convert_book_format(
-            book_id, calibrepath, "azw3", book_format.lower(), user_id, ereader_mail
-        )
-
-    for entry in iter(book.data):
-        if entry.format.upper() == book_format.upper():
-            converted_file_name = entry.name + "." + book_format.lower()
-            link = '<a href="{}">{}</a>'.format(
-                url_for("web.show_book", book_id=book_id), escape(book.title)
-            )
-            email_text = N_("%(book)s send to eReader", book=link)
-            for email in ereader_mail.split(","):
-                email = strip_whitespaces(email)
-                WorkerThread.add(
-                    user_id,
-                    TaskEmail(
-                        _("Send to eReader"),
-                        book.path,
-                        converted_file_name,
-                        config.get_mail_settings(),
-                        email,
-                        email_text,
-                        _("This Email has been sent via Calibre-Web."),
-                        book.id,
-                    ),
-                )
-            return
-    return _("The requested file could not be read. Maybe wrong permissions?")
+    # smallscope: send-to-eReader is removed (Carrel spec 6.2/14). The route
+    # and the SMTP config pane survive upstream; this stub keeps the chain
+    # dead regardless of configuration state, so no queue can run
+    # ebook-convert and write a converted file into the library folder.
+    return _("Sending to eReaders is disabled on this instance")
 
 
 def get_valid_filename(

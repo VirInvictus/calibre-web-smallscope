@@ -221,6 +221,32 @@ class SmallscopeTestCase(unittest.TestCase):
         for url in ("/tasks", "/shelf/1", "/admin/book/1"):
             self.assertEqual(self.client.get(url).status_code, 404, url)
 
+    def test_send_and_convert_chain_is_stubbed(self):
+        """No config state can re-enable send/convert (Phase 13).
+
+        The /send route is still routed (the spec removed only the template
+        entry point); with SMTP armed and kindle_mail set it used to queue
+        ebook-convert, which writes a converted file INTO the library
+        folder. The helpers refuse before touching the ORM, so the refusal
+        is structural, not a matter of configuration or operation order.
+        """
+        from cps import helper
+
+        self.assertIn("disabled", helper.send_mail(1, "EPUB", 0, "a@b.c", LIB, "admin"))
+        self.assertIn(
+            "disabled", helper.convert_book_format(1, LIB, "EPUB", "PDF", "admin")
+        )
+
+    def test_metadata_backup_task_refuses(self):
+        """TaskBackupMetadata wrote metadata.opf into book folders, fail-closed
+        only by operation order (the ro commit errored first). It now refuses
+        before touching anything."""
+        from cps.tasks.metadata_backup import TaskBackupMetadata
+
+        task = TaskBackupMetadata()
+        task.run(None)
+        self.assertIn("disabled", task.error or "")
+
     # --- single user (spec 11) ---------------------------------------------
 
     def test_library_renders_without_any_credential(self):

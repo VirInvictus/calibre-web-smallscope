@@ -40,10 +40,11 @@ class TaskBackupMetadata(CalibreTask):
         self.set_dirty = set_dirty
 
     def run(self, worker_thread):
-        if self.set_dirty:
-            self.set_all_books_dirty()
-        else:
-            self.backup_metadata()
+        # smallscope: disabled outright (Carrel spec 7). A metadata backup
+        # writes metadata.opf INTO the book folders; until now that failed
+        # closed only because the read-only commit errored first, a matter
+        # of operation order. Refuse before touching anything instead.
+        self._handleError("Metadata backup is disabled: the library is read-only")
 
     def set_all_books_dirty(self):
         with app.app_context():

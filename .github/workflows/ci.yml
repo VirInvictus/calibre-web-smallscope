@@ -63,8 +63,9 @@ jobs:
         # Wings routes evaluate virtual libraries through cquarry's search
         # port (cps/wings.py: `from cquarry.db import CalibreDB`). It lives in a
         # sibling repo, not requirements.txt, so install it here or the Wings
-        # tests 404.
-        run: pip install "git+https://github.com/VirInvictus/cquarry.git@main"
+        # tests 404. Pinned to a tag (not @main) so a sibling-repo push cannot
+        # redden this CI with no fork change; bump the pin deliberately.
+        run: pip install "git+https://github.com/VirInvictus/cquarry.git@v1.17.0"
 
       - name: ruff check
         run: ruff check $CARREL_PY

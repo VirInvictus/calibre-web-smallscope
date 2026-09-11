@@ -86,19 +86,24 @@ def inject_wings():
 @login_required_if_no_ano
 def show_wing(name, page):
     try:
-        ids = _wing_ids().get(name)
+        resolved = _wing_ids()
     except Exception as ex:
         log.error("Wings unavailable: %s", ex)
-        ids = None
-    if ids is None:
+        resolved = {}
+    # Wing URLs are case-insensitive like every surface beneath them
+    # (Phase 13): the sidebar spells the wing its own way and the route
+    # matches any casing. The canonical spelling drives the title and the
+    # active marker so the sidebar highlights the real entry.
+    key = next((k for k in resolved if k.lower() == name.lower()), None)
+    if key is None:
         abort(404)
-    entries, pagination = quarry_grid.grid(page, ids)
+    entries, pagination = quarry_grid.grid(page, resolved[key])
     return render_title_template(
         "index.html",
         random=None,
         entries=entries,
         pagination=pagination,
-        title=_("Wing: %(name)s", name=name),
+        title=_("Wing: %(name)s", name=key),
         page="wings",
-        wing_active=name,
+        wing_active=key,
     )

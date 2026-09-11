@@ -19,7 +19,7 @@
 #  along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 
-from flask import Blueprint
+from flask import Blueprint, abort
 from flask_babel import gettext as _
 from flask_babel import get_locale
 from flask import request, redirect, url_for
@@ -49,7 +49,7 @@ def index():
     # Phase 7 swap: the fallback page searches through cquarry's engine too
     # (spec 13's one-grammar rule applied to the last holdout) and pages via
     # quarry_grid. Fixed title-sort: the basic page has no sort header.
-    from .carrel_search import SearchError, resolve
+    from .carrel_search import LibraryUnavailable, SearchError, resolve
     from .quarry_grid import grid
 
     search_error = None
@@ -57,6 +57,10 @@ def index():
         ids = resolve(term) if term else None
     except SearchError as ex:
         ids, search_error = [], str(ex)
+    except LibraryUnavailable:
+        # The library cannot be read, which is not a bad query: answer the
+        # instance's standard degraded status, like /statistics.
+        abort(503)
     # ids=None (no query) pages the whole library; an empty set (query
     # matched nothing) pages nothing — grid keeps the two apart.
     entries, pagination = grid(page, ids, per_page=limit)

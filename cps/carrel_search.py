@@ -20,6 +20,8 @@
 # "King" matches "sorcerer-king" and equally "making" inside a description.
 # It is faithful, and it is the cost of parity.
 
+import sqlite3
+
 from . import logger
 from .library_cache import LibraryCache, library_path
 
@@ -28,6 +30,10 @@ log = logger.create()
 
 class SearchError(Exception):
     """A query the grammar could not parse. Carries the engine's own message."""
+
+
+class LibraryUnavailable(Exception):
+    """The library behind the engine could not be opened or queried."""
 
 
 def _open_quarry():
@@ -52,15 +58,24 @@ def _quarry():
 
 
 def resolve(term):
-    """Query string -> list of book ids. Raises SearchError on a bad query."""
+    """Query string -> list of book ids.
+
+    Raises SearchError on a query the grammar cannot parse (a user error the
+    callers render as a message) and LibraryUnavailable when the library
+    itself cannot be read (a degraded instance, answered 503 like
+    /statistics, not phrased as a bad query). Anything else is a bug and
+    propagates.
+    """
     from cquarry.search import ParseException
 
     try:
         return list(_quarry().search(term))
     except ParseException as ex:
         raise SearchError(str(ex)) from ex
-    except Exception as ex:
-        # A malformed query must never 500 the app; surface it as a search
-        # error and let the template say so.
-        log.error("Search failed for %r: %s", term, ex)
-        raise SearchError(str(ex)) from ex
+    except (sqlite3.Error, OSError) as ex:
+        # A vanished or unreadable metadata.db must not surface as "could
+        # not parse that search" (Phase 13): the two failure classes get
+        # different answers everywhere else in the fork, so they get
+        # different exceptions here.
+        log.error("Library unavailable for search %r: %s", term, ex)
+        raise LibraryUnavailable(str(ex)) from ex

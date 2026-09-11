@@ -142,7 +142,12 @@ def tearDownModule():
     shutil.rmtree(_TMP, ignore_errors=True)
 
 
-class SmallscopeTestCase(unittest.TestCase):
+class _ClientCase(unittest.TestCase):
+    """The shared harness client, on its own base so subclasses inherit the
+    wiring WITHOUT inheriting every test below: TestQuarryExtensions used to
+    subclass the base case class, which re-ran all 48 parent tests against
+    its own setUp state (108 executions for 60 unique tests)."""
+
     @classmethod
     def setUpClass(cls):
         # No login: spec 11 authenticates the owner on every request. If the
@@ -150,6 +155,8 @@ class SmallscopeTestCase(unittest.TestCase):
         # login page that no longer exists.
         cls.client = app.test_client()
 
+
+class SmallscopeTestCase(_ClientCase):
     # --- enum read column ------------------------------------------------
 
     def test_read_column_is_enum(self):
@@ -803,8 +810,11 @@ class SmallscopeTestCase(unittest.TestCase):
         self.assertGreaterEqual(self._results("(tags:Fic.SciFi)"), both)
 
     def test_custom_column_prefix(self):
-        # #<label> is Calibre's custom-column syntax; cc2 is the enum column
-        self.assertGreaterEqual(self._results("#reading_status:Read"), 0)
+        # #<label> is Calibre's custom-column syntax; cc2 is the enum column.
+        # assertGreater, not assertGreaterEqual(..., 0): the vacuous form
+        # passed the exact regression it names (a zero-count or unparseable
+        # page satisfied it), so it asserted nothing.
+        self.assertGreater(self._results("#reading_status:Read"), 0)
 
     def test_malformed_query_is_reported_not_500(self):
         from urllib.parse import quote
@@ -949,6 +959,15 @@ class SmallscopeTestCase(unittest.TestCase):
         self.assertEqual(self.client.get("/wings/Empty").status_code, 200)
         self.assertEqual(self.client.get("/wings/Nope").status_code, 404)
 
+    def test_wing_urls_are_case_insensitive(self):
+        # /wings/scifi and /wings/SciFi are the same wing (every surface
+        # beneath the sidebar is case-insensitive); unknown names still 404
+        # in any casing.
+        page = self.client.get("/wings/scifi").get_data(as_text=True)
+        self.assertIn("Ancillary Justice", page)
+        self.assertIn("Dune", page)
+        self.assertEqual(self.client.get("/wings/nOpe").status_code, 404)
+
     def test_wings_cache_invalidates_on_mtime(self):
         sqlite3_path = DBPATH
         page = self.client.get("/").get_data(as_text=True)
@@ -973,13 +992,15 @@ class SmallscopeTestCase(unittest.TestCase):
         self.assertIn('Fantasy <span class="badge badge-sm">1', page)
 
 
-class TestQuarryExtensions(SmallscopeTestCase):
+class TestQuarryExtensions(_ClientCase):
     """cquarry 1.1 adoption: saved searches sidebar/routes, Calibre's own
     wing layout state (order + hidden), and per-book reader state.
 
-    Hermetic by setUp: earlier classes repoint config_calibre_dir and leave
-    the mtime caches holding whatever they last saw, so pin the library and
-    force clean rebuilds here."""
+    A _ClientCase sibling of SmallscopeTestCase, not a subclass of it: the
+    parent's 48 checks run once, in SmallscopeTestCase. Hermetic by setUp:
+    earlier classes repoint config_calibre_dir and leave the mtime caches
+    holding whatever they last saw, so pin the library and force clean
+    rebuilds here."""
 
     def setUp(self):
         from cps import config as cps_config
@@ -1082,6 +1103,11 @@ class TestQuarryExtensions(SmallscopeTestCase):
 
     def test_unknown_saved_search_404s(self):
         self.assertEqual(self.client.get("/saved/Nope").status_code, 404)
+
+    def test_saved_search_urls_are_case_insensitive(self):
+        page = self.client.get("/saved/hugo winners").get_data(as_text=True)
+        self.assertIn("Ancillary Justice", page)
+        self.assertNotIn("Dune", page)
 
     def test_interpolated_query_matches_engine_directly(self):
         from cps.carrel_search import resolve

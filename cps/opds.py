@@ -754,11 +754,11 @@ def feed_search(term):
         # quotes), and the feed is capped at the configured books-per-page
         # with the template's existing rel="next" carrying readers onward,
         # instead of rendering every match in one unbounded response.
-        from .carrel_search import SearchError, resolve
+        from .carrel_search import LibraryUnavailable, SearchError, resolve
 
         try:
             ids = resolve(term)
-        except SearchError:
+        except (SearchError, LibraryUnavailable):
             ids = []
         page = _int_param("offset") // (config.config_books_per_page or 60) + 1
         entries, pagination = quarry_grid.grid(page, ids, include_comments=True)

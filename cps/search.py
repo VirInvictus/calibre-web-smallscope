@@ -15,7 +15,7 @@
 #  along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 
-from flask import Blueprint, request, redirect, url_for
+from flask import Blueprint, abort, request, redirect, url_for
 from flask_babel import gettext as _
 
 from . import logger
@@ -52,7 +52,7 @@ def render_search_results(term, offset=None, order=None, limit=None, sort_param=
     # Carrel (spec 13): the bar evaluates through cquarry's Calibre-parity
     # engine instead of upstream's FTS5 phrase match, which had no grammar and
     # returned nothing for every field-prefixed query.
-    from .carrel_search import SearchError, resolve
+    from .carrel_search import LibraryUnavailable, SearchError, resolve
 
     search_error = None
     if term:
@@ -60,6 +60,10 @@ def render_search_results(term, offset=None, order=None, limit=None, sort_param=
             ids = resolve(term)
         except SearchError as ex:
             ids, search_error = [], str(ex)
+        except LibraryUnavailable:
+            # The library cannot be read, which is not a bad query: answer
+            # the instance's standard degraded status, like /statistics.
+            abort(503)
         result_count = len(ids)
         page = (int(offset) // int(limit) + 1) if (offset and limit) else 1
         # Carrel: honour the sort header, now through cquarry's list_books

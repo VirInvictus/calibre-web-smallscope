@@ -71,21 +71,23 @@ def inject_saved_searches():
 @login_required_if_no_ano
 def show_saved(name, page):
     try:
-        ids = _saved_ids().get(name)
+        resolved = _saved_ids()
     except Exception as ex:
         log.error("Saved searches unavailable: %s", ex)
-        ids = None
-    if ids is None:
+        resolved = {}
+    # Case-insensitive like wings (Phase 13); the canonical spelling wins.
+    key = next((k for k in resolved if k.lower() == name.lower()), None)
+    if key is None:
         abort(404)
     # A saved search that currently matches nothing is still a real search:
     # render an empty page rather than 404 so the sidebar link keeps working.
-    entries, pagination = quarry_grid.grid(page, ids or frozenset())
+    entries, pagination = quarry_grid.grid(page, resolved[key] or frozenset())
     return render_title_template(
         "index.html",
         random=None,
         entries=entries,
         pagination=pagination,
-        title=_("Saved Search: %(name)s", name=name),
+        title=_("Saved Search: %(name)s", name=key),
         page="saved_searches",
-        wing_active=name,
+        wing_active=key,
     )

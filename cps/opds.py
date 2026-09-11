@@ -45,6 +45,22 @@ opds = Blueprint("opds", __name__)
 log = logger.create()
 
 
+def _int_param(name, default=0):
+    """A query parameter as an int, or the default when absent or garbage.
+
+    OPDS clients hand over offsets as arbitrary strings; a bad one used to
+    escape `int()` as a 500 instead of degrading to the first page.
+    Negative values clamp to 0 for the same reason.
+    """
+    raw = request.args.get(name)
+    if raw is None:
+        return default
+    try:
+        return max(0, int(raw))
+    except (TypeError, ValueError):
+        return default
+
+
 @opds.route("/opds/")
 @opds.route("/opds")
 @requires_basic_auth_if_no_ano
@@ -90,7 +106,7 @@ def feed_letter_books(book_id):
     # Phase 7: ids + paging through cquarry's grid (include_comments feeds
     # the content block; cc=[] skips the custom-column block until a cc
     # adapter exists).
-    off = int(request.args.get("offset") or 0)
+    off = _int_param("offset")
     page = int(off / (int(config.config_books_per_page)) + 1)
     all_ids = quarry_grid.all_ids()
     if book_id != "00":
@@ -115,7 +131,7 @@ def feed_letter_books(book_id):
 def feed_new():
     if not auth.current_user().check_visibility(constants.SIDEBAR_RECENT):
         abort(404)
-    off = int(request.args.get("offset") or 0)
+    off = _int_param("offset")
     page = int(off / (int(config.config_books_per_page)) + 1)
     entries, pagination = quarry_grid.grid(
         page, None, sort=("timestamp",), descending=True, include_comments=True
@@ -149,7 +165,7 @@ def feed_discover():
 def feed_best_rated():
     if not auth.current_user().check_visibility(constants.SIDEBAR_BEST_RATED):
         abort(404)
-    off = int(request.args.get("offset") or 0)
+    off = _int_param("offset")
     page = int(off / (int(config.config_books_per_page)) + 1)
     ids = quarry_grid.ids_with("rating", 10)
     entries, pagination = quarry_grid.grid(
@@ -166,7 +182,7 @@ def feed_best_rated():
 def feed_hot():
     if not auth.current_user().check_visibility(constants.SIDEBAR_HOT):
         abort(404)
-    off = request.args.get("offset") or 0
+    off = _int_param("offset")
     all_books = (
         ub.session.query(ub.Downloads, func.count(ub.Downloads.book_id))
         .order_by(func.count(ub.Downloads.book_id).desc())
@@ -213,7 +229,7 @@ def feed_authorindex():
 def feed_letter_author(book_id):
     if not auth.current_user().check_visibility(constants.SIDEBAR_AUTHOR):
         abort(404)
-    off = request.args.get("offset") or 0
+    off = _int_param("offset")
     letter = (
         true() if book_id == "00" else func.upper(db.Authors.sort).startswith(book_id)
     )
@@ -253,7 +269,7 @@ def feed_author(book_id):
 def feed_publisherindex():
     if not auth.current_user().check_visibility(constants.SIDEBAR_PUBLISHER):
         abort(404)
-    off = request.args.get("offset") or 0
+    off = _int_param("offset")
     entries = (
         calibre_db.session.query(db.Publishers)
         .join(db.books_publishers_link)
@@ -299,7 +315,7 @@ def feed_categoryindex():
 def feed_letter_category(book_id):
     if not auth.current_user().check_visibility(constants.SIDEBAR_CATEGORY):
         abort(404)
-    off = request.args.get("offset") or 0
+    off = _int_param("offset")
     letter = true() if book_id == "00" else func.upper(db.Tags.name).startswith(book_id)
     entries = (
         calibre_db.session.query(db.Tags)
@@ -348,7 +364,7 @@ def feed_seriesindex():
 def feed_letter_series(book_id):
     if not auth.current_user().check_visibility(constants.SIDEBAR_SERIES):
         abort(404)
-    off = request.args.get("offset") or 0
+    off = _int_param("offset")
     letter = (
         true() if book_id == "00" else func.upper(db.Series.sort).startswith(book_id)
     )
@@ -380,7 +396,7 @@ def feed_letter_series(book_id):
 @opds.route("/opds/series/<int:book_id>")
 @requires_basic_auth_if_no_ano
 def feed_series(book_id):
-    off = int(request.args.get("offset") or 0)
+    off = _int_param("offset")
     page = int(off / (int(config.config_books_per_page)) + 1)
     ids = quarry_grid.ids_for_entity("series", book_id)
     entries, pagination = quarry_grid.grid(
@@ -397,7 +413,7 @@ def feed_series(book_id):
 def feed_ratingindex():
     if not auth.current_user().check_visibility(constants.SIDEBAR_RATING):
         abort(404)
-    off = request.args.get("offset") or 0
+    off = _int_param("offset")
     entries = (
         calibre_db.session.query(
             db.Ratings,
@@ -441,7 +457,7 @@ def feed_ratings(book_id):
 def feed_formatindex():
     if not auth.current_user().check_visibility(constants.SIDEBAR_FORMAT):
         abort(404)
-    off = request.args.get("offset") or 0
+    off = _int_param("offset")
     entries = (
         calibre_db.session.query(db.Data)
         .join(db.Books)
@@ -471,7 +487,7 @@ def feed_formatindex():
 @opds.route("/opds/formats/<book_id>")
 @requires_basic_auth_if_no_ano
 def feed_format(book_id):
-    off = int(request.args.get("offset") or 0)
+    off = _int_param("offset")
     page = int(off / (int(config.config_books_per_page)) + 1)
     ids = quarry_grid.ids_with("formats", book_id.upper())
     entries, pagination = quarry_grid.grid(
@@ -489,7 +505,7 @@ def feed_format(book_id):
 def feed_languagesindex():
     if not auth.current_user().check_visibility(constants.SIDEBAR_LANGUAGE):
         abort(404)
-    off = request.args.get("offset") or 0
+    off = _int_param("offset")
     # Phase 7: language facets from cquarry's entity rollup.
     if auth.current_user().filter_language() == "all":
         languages = [
@@ -528,7 +544,7 @@ def feed_languagesindex():
 @opds.route("/opds/language/<int:book_id>")
 @requires_basic_auth_if_no_ano
 def feed_languages(book_id):
-    off = request.args.get("offset") or 0
+    off = _int_param("offset")
     entries, __, pagination = calibre_db.fill_indexpage(
         (int(off) / (int(config.config_books_per_page)) + 1),
         0,
@@ -549,7 +565,7 @@ def feed_languages(book_id):
 def feed_shelfindex():
     if not (auth.current_user().is_authenticated or g.allow_anonymous):
         abort(404)
-    off = request.args.get("offset") or 0
+    off = _int_param("offset")
     shelf = (
         ub.session.query(ub.Shelf)
         .filter(
@@ -579,7 +595,7 @@ def feed_shelfindex():
 def feed_shelf(book_id):
     if not (auth.current_user().is_authenticated or g.allow_anonymous):
         abort(404)
-    off = request.args.get("offset") or 0
+    off = _int_param("offset")
     if auth.current_user().is_anonymous:
         shelf = (
             ub.session.query(ub.Shelf)
@@ -692,7 +708,7 @@ def feed_read_books():
         and not auth.current_user().is_anonymous
     ):
         return abort(403)
-    off = request.args.get("offset") or 0
+    off = _int_param("offset")
     result, pagination = render_read_books(
         int(off) / (int(config.config_books_per_page)) + 1, True, True
     )
@@ -708,7 +724,7 @@ def feed_unread_books():
         and not auth.current_user().is_anonymous
     ):
         return abort(403)
-    off = request.args.get("offset") or 0
+    off = _int_param("offset")
     result, pagination = render_read_books(
         int(off) / (int(config.config_books_per_page)) + 1, False, True
     )
@@ -733,12 +749,19 @@ class FeedObject:
 def feed_search(term):
     if term:
         # Phase 7: the OPDS search speaks the same grammar as the bar.
-        from .carrel_search import resolve
+        # Phase 13: an unparseable query is an empty feed, not a 500 (the
+        # web bar and /basic degrade the same way; OPDS users type stray
+        # quotes), and the feed is capped at the configured books-per-page
+        # with the template's existing rel="next" carrying readers onward,
+        # instead of rendering every match in one unbounded response.
+        from .carrel_search import SearchError, resolve
 
-        ids = resolve(term)
-        entries, pagination = quarry_grid.grid(
-            1, ids, per_page=max(1, len(ids)), include_comments=True
-        )
+        try:
+            ids = resolve(term)
+        except SearchError:
+            ids = []
+        page = _int_param("offset") // (config.config_books_per_page or 60) + 1
+        entries, pagination = quarry_grid.grid(page, ids, include_comments=True)
         cc = []
         return render_xml_template(
             "feed.xml",
@@ -776,7 +799,7 @@ _DATASET_KINDS = {
 
 def render_xml_dataset(data_table, book_id):
     # Phase 7: entity id sets resolve rows-side via quarry_grid.
-    off = int(request.args.get("offset") or 0)
+    off = _int_param("offset")
     page = int(off / (int(config.config_books_per_page)) + 1)
     ids = quarry_grid.ids_for_entity(_DATASET_KINDS[data_table], book_id)
     entries, pagination = quarry_grid.grid(
@@ -797,7 +820,7 @@ def _letter_elements(letters, folder):
     the SQL group-bys over entity columns are gone. "00" (All) leads,
     offsets slice letters, and the cc list is empty on cquarry-backed
     feeds until a cc adapter exists."""
-    off = int(request.args.get("offset") or 0)
+    off = _int_param("offset")
     elements = []
     shift = 0
     if off == 0 and letters:
@@ -824,7 +847,7 @@ def _letter_elements(letters, folder):
 
 def render_element_index(database_column, linked_table, folder):
     shift = 0
-    off = int(request.args.get("offset") or 0)
+    off = _int_param("offset")
     entries = calibre_db.session.query(
         func.upper(func.substr(database_column, 1, 1)).label("id"), None, None
     )

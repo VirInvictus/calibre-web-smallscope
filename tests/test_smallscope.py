@@ -516,6 +516,37 @@ class SmallscopeTestCase(unittest.TestCase):
         self.assertIn("Dune", titles)
         self.assertNotIn("Gardens of the Moon", titles)
 
+    def test_opds_search_feed_degrades_and_caps(self):
+        """Phase 13: a bad query is an empty feed, not a 500, and the feed
+        pages at the configured books-per-page via the existing rel="next"
+        instead of rendering every match in one unbounded response."""
+        import xml.etree.ElementTree as ET
+
+        auth = {"Authorization": "Basic YWRtaW46YWRtaW4xMjM="}
+        ns = "{http://www.w3.org/2005/Atom}"
+        # an unclosed quote is a parse error for the grammar
+        resp = self.client.get("/opds/search/author%3A%22Unclosed", headers=auth)
+        self.assertEqual(resp.status_code, 200)
+        root = ET.fromstring(resp.get_data(as_text=True))
+        self.assertEqual(root.findall(f"{ns}entry"), [])
+
+        # a garbage offset degrades to the first page instead of a 500
+        resp = self.client.get("/opds/new?offset=abc", headers=auth)
+        self.assertEqual(resp.status_code, 200)
+
+        # broad match + tiny page size: capped entries and a next link
+        old = config.config_books_per_page
+        config.config_books_per_page = 2
+        try:
+            resp = self.client.get("/opds/search/tags%3AFic", headers=auth)
+            self.assertEqual(resp.status_code, 200)
+            body = resp.get_data(as_text=True)
+            root = ET.fromstring(body)
+            self.assertEqual(len(root.findall(f"{ns}entry")), 2)
+            self.assertIn('rel="next"', body)
+        finally:
+            config.config_books_per_page = old
+
     def test_opds_letter_indexes_render(self):
         auth = {"Authorization": "Basic YWRtaW46YWRtaW4xMjM="}
         for path in ("/opds", "/opds/author", "/opds/series", "/opds/category"):

@@ -17,8 +17,9 @@ changing semantics here.
 ## What is different from upstream
 
 **No login.** `cps/single_user.py` authenticates the owner on every request, so
-upstream's 154 `@login_required` decorators pass untouched and rebases onto new
-tags stay clean. `/login`, `/logout`, `/register` and user management answer
+the 39 `@login_required` decorators upstream ships (42 across 10 modules once
+the fork's own are counted) pass untouched and rebases onto new tags stay
+clean. `/login`, `/logout`, `/register` and user management answer
 404. Deleting that one module restores stock behaviour exactly.
 
 **The library is read-only, structurally.** `metadata.db` is attached with
@@ -29,7 +30,7 @@ database around the attempts.
 **Calibre's search grammar.** Upstream has none: it lowercases the term and
 hands it to FTS5 as a phrase, so every field-prefixed query matches as literal
 text and finds nothing. Carrel evaluates through
-[CalibreQuarry](https://github.com/VirInvictus/cquarry)'s stdlib port of
+[cquarry](https://github.com/VirInvictus/cquarry)'s stdlib port of
 Calibre's expression parser. Measured against the live library:
 
 | query | upstream | Carrel |
@@ -49,11 +50,11 @@ the grammar's own message rather than quietly returning nothing.
 through the same engine, so a wing in the sidebar and a `vl:` search agree by
 construction.
 
-**Saved Searches.** Calibre’s named searches join them as a second sidebar section (`/saved/<name>`), resolved through cquarry 1.1’s `search:"Name"` interpolation with cycle detection — so the sidebar, the search bar and the desktop Calibre GUI can never disagree about what a saved search matches.
+**Saved Searches.** Calibre’s named searches join them as a second sidebar section (`/saved/<name>`), resolved through cquarry 1.1’s `search:"Name"` interpolation with cycle detection, so the sidebar, the search bar and the desktop Calibre GUI can never disagree about what a saved search matches.
 
 **Calibre-exact wing layout.** The sidebar follows the ordering stored in Calibre’s own preferences (`virt_libs_order`) and hides what Calibre hides (`virt_libs_hidden`), so the web room arranges wings exactly as the desktop does.
 
-**Reader state.** The detail page shows where you are in a book (latest-device progress from `last_read_positions`) and how many highlights it holds (from `annotations`) — both read through cquarry’s extractors, never guessed.
+**Reader state.** The detail page shows where you are in a book (latest-device progress from `last_read_positions`) and how many highlights it holds (from `annotations`); both read through cquarry’s extractors, never guessed.
 
 **A category browser over the dot taxonomy.** Only leaf tags are assigned in
 this library (`Fic.Fantasy.Epic.Gods` exists; `Fic.Fantasy` does not), so every

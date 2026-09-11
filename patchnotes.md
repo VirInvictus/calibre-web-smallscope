@@ -37,7 +37,7 @@
 - **`detail_entry()`** stubs the cquarry-backed detail builder: fetches
   the dossier, builds the enriched proxy + cc metadata list. The
   show_book route still runs on the ORM (the swap is the next session's
-  work — the scaffold is tested and the proxies are proven by the suite).
+  work: the scaffold is tested and the proxies are proven by the suite).
 - **Version 0.6.37.** Suite 108 green.
 
 ## Phase 7 wrap: /ajax/listbooks sealed, advsearch code deleted, slop pass (2026-09-03, 0.6.36)
@@ -301,7 +301,7 @@ behaviour; everything lives in Carrel-owned modules.
 - **Saved Searches sidebar (`cps/saved_searches.py`).** Calibre's named
   searches (`preferences.saved_searches`) become browse sections at
   `/saved/<name>`, resolved through cquarry 1.1's `search:"Name"`
-  interpolation \u2014 cycle detection, strict errors on unknown names, and exact
+  interpolation: cycle detection, strict errors on unknown names, and exact
   agreement with whatever the search bar evaluates.
 - **Calibre-exact wing layout (`cps/wings.py`).** The sidebar now follows
   Calibre's stored tab order and hidden list via `get_vl_ui_state()`

@@ -24,7 +24,7 @@ Read those before changing anything here.
   tools, churning whole upstream files and poisoning rebases; the hook's
   registration was removed on 2026-09-05, but if one is ever re-registered
   the hazard returns. **Patch upstream `.py` files via shell (python
-  heredoc) regardless** — the rebase-cleanliness motive stands on its own.
+  heredoc) regardless**; the rebase-cleanliness motive stands on its own.
   Templates, CSS, and our own new modules are fine to edit normally.
 
 ## The modules that are ours

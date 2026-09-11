@@ -133,7 +133,7 @@ New code lives in new modules, so the diff against upstream stays legible.
 
 | file | what it does |
 | --- | --- |
-| `cps/single_user.py` | authenticates the owner; seals the credential routes |
+| `cps/single_user.py` | authenticates the owner; seals the credential and admin-machinery routes |
 | `cps/smallscope.py` | disables blueprints and the cut browse surfaces |
 | `cps/carrel_search.py` | resolves a query through cquarry's engine |
 | `cps/quarry_grid.py` | the cquarry data layer: build_detail, entity id sets, search sorts, pagination |

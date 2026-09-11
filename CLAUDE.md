@@ -35,8 +35,8 @@ Everything Carrel adds lives in its own file, so the upstream diff stays small.
 
 | file | what it does |
 | --- | --- |
-| `cps/single_user.py` | authenticates the owner per request; seals `/login`, `/logout`, `/register`, `/admin/user/new`, `/admin/usertable` |
-| `cps/smallscope.py` | `trim()` disables blueprints; `seal_browse_surfaces()` 404s `/hot`, `/rated`, `/discover`, `/advsearch` by path prefix |
+| `cps/single_user.py` | authenticates the owner per request; seals the credential paths (`/login`, `/logout`, `/register`, `/admin/user/new`, `/admin/usertable`) and, since 0.6.40, the admin machinery (`/get_update_status`, `/get_updater_status`, the user AJAX trio, `/ajax/pathchooser`, `/shutdown`, `/reconnect`) |
+| `cps/smallscope.py` | `trim()` disables blueprints; `seal_browse_surfaces()` 404s `/hot`, `/rated`, `/discover`, `/advsearch`, `/table`, `/ajax/listbooks`, `/ajax/table_settings` by path prefix |
 | `cps/carrel_search.py` | resolves the search bar through cquarry's engine |
 | `cps/wings.py` | Calibre virtual libraries as browse sections |
 | `cps/saved_searches.py` | Calibre saved searches as browse sections (cquarry `search:"Name"` interpolation) |

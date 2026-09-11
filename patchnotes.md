@@ -12,6 +12,13 @@
   Stock calibre-web files (web.py, db.py, helper.py, config_sql.py)
   keep their upstream headers: they are still substantially upstream
   code. README identity is already Carrel-first.
+  *(Corrected 2026-09-11: clean_html.py was NOT rewritten from
+  scratch. It exists at the 0.6.26 base and this branch's diff was a
+  pure whole-file reformat with zero functional change that also
+  stripped upstream's GPL-3.0 header from third-party code. The file
+  is reverted to upstream byte-for-byte; whether the CI lint list or
+  the ownership claim should bend to that is Brandon's call, drafted
+  in Carrel's roadmap.)*
 - **Version 0.6.39.** Suite 108 green.
 
 ## Phase 7: show_book through cquarry's build_detail (2026-09-04, 0.6.38)

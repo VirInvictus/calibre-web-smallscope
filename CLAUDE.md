@@ -51,6 +51,17 @@ All of them cache on `metadata.db`'s mtime **and the library's UUID**, the
 idiom `wings.py` established and the cquarry 1.3 adoption generalized
 (mtime-only is the documented degraded mode).
 
+## Rebase posture
+
+Against upstream tag `0.6.26`, four files carry the fork's mass and will
+conflict on any upstream touch: `web.py` (~2000 changed lines),
+`helper.py` (~1000), `opds.py` (~700), and the advsearch deletion in
+`search.py` (~450 lines gone). Budget a session for those. The done-right
+counterexamples: `main.py` (+32 lines, all registrations and seals),
+`constants.py` (one line), `admin.py` (6), `db.py` (36, the two attach
+sites and the enum branch). Rebases onto new upstream tags are deliberate
+events (Carrel spec 3), not routine pulls.
+
 ## Things that will bite you
 
 - **calibre-web has two URL shapes.** Overview pages are bare (`/author`,

@@ -31,8 +31,15 @@ from flask import abort, request
 from .cw_login import current_user, login_user
 
 # Paths that exist only to manage credentials or to manage a user population
-# that no longer exists. Compared after stripping a trailing slash, so /login
-# and /login/ are both sealed.
+# that no longer exists, plus the admin machinery surfaces the credential seal
+# never met (Phase 13): the updater pair can replace the checkout with an
+# upstream release, which destroys the smallscope patches and stops the
+# server; the user-management AJAX trio sits below the UI-layer seal, and
+# deleting the owner bricks the room; /ajax/pathchooser is an arbitrary
+# directory listing; /shutdown and /reconnect are one-request disruptions.
+# Compared after stripping a trailing slash and lowercasing, so /login and
+# /login/ are both sealed; _SEALED_PREFIXES covers the one route that takes
+# a path parameter.
 #
 # /admin/user/<id> is deliberately NOT sealed: it is how the owner edits their
 # own locale and sidebar preferences, which is ordinary configuration rather
@@ -44,8 +51,17 @@ _SEALED = frozenset(
         "/register",
         "/admin/user/new",
         "/admin/usertable",
+        "/get_update_status",
+        "/get_updater_status",
+        "/ajax/listusers",
+        "/ajax/deleteuser",
+        "/ajax/pathchooser",
+        "/shutdown",
+        "/reconnect",
     )
 )
+
+_SEALED_PREFIXES = ("/ajax/editlistusers",)
 
 
 def _owner():
@@ -63,7 +79,8 @@ def _owner():
 def install(app):
     @app.before_request
     def _single_user():
-        if request.path.rstrip("/").lower() in _SEALED:
+        path = request.path.rstrip("/").lower()
+        if path in _SEALED or path.startswith(_SEALED_PREFIXES):
             abort(404)
         if not current_user.is_authenticated:
             owner = _owner()

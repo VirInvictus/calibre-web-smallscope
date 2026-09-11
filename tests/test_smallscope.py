@@ -241,6 +241,33 @@ class SmallscopeTestCase(unittest.TestCase):
         ):
             self.assertEqual(self.client.get(url).status_code, 404, url)
 
+    def test_admin_machinery_surfaces_are_sealed(self):
+        """The eight surfaces the credential seal never met (Phase 13).
+
+        The updater pair can replace the checkout with an upstream release;
+        the user AJAX trio survives the UI-layer seal (deleting the owner
+        bricks the room); /ajax/pathchooser is a directory listing;
+        /shutdown and /reconnect are one-request disruptions. Method matters:
+        the seal is a before_request guard, so it only fires once routing has
+        matched a rule (GET /shutdown is a 405 from routing either way).
+        Case and trailing-slash variants must seal identically.
+        """
+        for method, url in (
+            ("POST", "/shutdown"),
+            ("GET", "/reconnect"),
+            ("GET", "/get_update_status"),
+            ("GET", "/get_updater_status"),
+            ("POST", "/get_updater_status"),
+            ("GET", "/ajax/listusers"),
+            ("POST", "/ajax/deleteuser"),
+            ("GET", "/ajax/pathchooser/"),
+            ("POST", "/ajax/editlistusers/nickname"),
+            ("POST", "/SHUTDOWN"),
+            ("GET", "/AJAX/ListUsers/"),
+        ):
+            resp = self.client.open(url, method=method)
+            self.assertEqual(resp.status_code, 404, (method, url))
+
     def test_login_required_pages_pass_through(self):
         # /me carries @login_required upstream. 200 here proves the decorator
         # is satisfied rather than removed.
